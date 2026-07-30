@@ -52,9 +52,12 @@ function safeHref(url) {
   return '#';
 }
 
-function svgMarker(color) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26"><circle cx="13" cy="13" r="9" fill="${color}" stroke="#ffffff" stroke-width="2"/></svg>`;
-  return 'data:image/svg+xml;base64,' + btoa(svg);
+function svgMarker(color, emoji) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34">
+    <circle cx="17" cy="17" r="15" fill="${color}" stroke="#ffffff" stroke-width="2"/>
+    <text x="17" y="18" font-size="15" text-anchor="middle" dominant-baseline="central">${emoji}</text>
+  </svg>`;
+  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
 }
 
 async function main() {
@@ -78,6 +81,13 @@ async function main() {
   renderStats(items);
   const mapCtl = createMapController(items);
   renderTable(items);
+
+  document.getElementById('tbody').addEventListener('click', (e) => {
+    const btn = e.target.closest('.place-link');
+    if (!btn) return;
+    mapCtl.focusPlace(btn.dataset.place);
+    document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
 
   const subtypeSelect = document.getElementById('subtypeSelect');
   const subtypes = Array.from(new Set(items.map(d => d.subtype))).sort();
@@ -136,6 +146,9 @@ function createMapController(items) {
       if (state.ready) state.impl.setItems(list);
       else state.pending = list;
     },
+    focusPlace(place) {
+      if (state.ready) state.impl.focusPlace(place);
+    },
   };
   if (typeof kakao === 'undefined' || !kakao.maps) {
     document.getElementById('map').innerHTML =
@@ -158,8 +171,14 @@ function initMap(items) {
   });
   map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
 
+  const clusterColor = getComputedColor('--cluster');
   const clusterer = new kakao.maps.MarkerClusterer({
     map, averageCenter: true, minLevel: 5, disableClickZoom: false,
+    styles: [{
+      width: '40px', height: '40px', lineHeight: '40px',
+      background: clusterColor, color: '#fff', textAlign: 'center',
+      borderRadius: '20px', fontSize: '13px', fontWeight: '600',
+    }],
   });
 
   const iwCache = new Map();
@@ -178,19 +197,24 @@ function initMap(items) {
   }
 
   let openInfoWindow = null;
+  const byPlace = new Map();
   const allMarkers = items.filter(d => !isNaN(d.lat) && !isNaN(d.lng)).map(d => {
-    const color = d.category === '카페' ? getComputedColor('--series-cafe') : getComputedColor('--series-food');
+    const isCafe = d.category === '카페';
+    const color = isCafe ? getComputedColor('--marker-cafe') : getComputedColor('--marker-food');
+    const emoji = isCafe ? '☕' : '🍴'; // ☕ / 🍴
     const marker = new kakao.maps.Marker({
       position: new kakao.maps.LatLng(d.lat, d.lng),
-      image: new kakao.maps.MarkerImage(svgMarker(color), new kakao.maps.Size(26, 26), { offset: new kakao.maps.Point(13, 13) }),
+      image: new kakao.maps.MarkerImage(svgMarker(color, emoji), new kakao.maps.Size(34, 34), { offset: new kakao.maps.Point(17, 17) }),
     });
     const iw = new kakao.maps.InfoWindow({ content: infoContentFor(d), removable: true });
-    kakao.maps.event.addListener(marker, 'click', () => {
+    function open() {
       if (openInfoWindow) openInfoWindow.close();
       iw.open(map, marker);
       openInfoWindow = iw;
-    });
+    }
+    kakao.maps.event.addListener(marker, 'click', open);
     marker.__item = d;
+    byPlace.set(d.place, { marker, open });
     return marker;
   });
 
@@ -212,7 +236,15 @@ function initMap(items) {
     }
   }
 
-  return { setItems };
+  function focusPlace(place) {
+    const entry = byPlace.get(place);
+    if (!entry) return;
+    map.setLevel(3);
+    map.panTo(entry.marker.getPosition());
+    entry.open();
+  }
+
+  return { setItems, focusPlace };
 }
 
 function getComputedColor(varName) {
@@ -223,10 +255,14 @@ function renderTable(items) {
   const tbody = document.getElementById('tbody');
   tbody.innerHTML = items.map((d, i) => {
     const link = safeHref(d.place_url || kakaoSearchUrl(d.place));
+    const hasCoords = !isNaN(d.lat) && !isNaN(d.lng);
+    const nameCell = hasCoords
+      ? `<button class="place-link" data-place="${escapeHtml(d.place)}">${escapeHtml(d.place)}</button>`
+      : escapeHtml(d.place);
     return `
     <tr>
       <td class="rank">${i + 1}</td>
-      <td>${escapeHtml(d.place)}</td>
+      <td>${nameCell}</td>
       <td><span class="cat-badge ${catClass(d.category)}">${catLabel(d.category)}</span></td>
       <td>${d.subtype}</td>
       <td class="num">${d.count}</td>
