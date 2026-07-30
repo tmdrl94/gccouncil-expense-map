@@ -27,12 +27,12 @@ function copyRecursive(src, dest) {
 
 fs.rmSync(DIST, { recursive: true, force: true });
 
-const items = ['index.html', 'style.css', 'app.js', 'data'];
+const items = ['index.html', 'style.css', 'app.js', 'data', 'tools'];
 for (const item of items) {
   copyRecursive(path.join(ROOT, item), path.join(DIST, item));
 }
 
-const htmlFiles = ['index.html'];
+const htmlFiles = ['index.html', 'tools/recategorize.html'];
 for (const file of htmlFiles) {
   const p = path.join(DIST, file);
   const text = fs.readFileSync(p, 'utf8').replaceAll('__KAKAO_JS_KEY__', KEY);

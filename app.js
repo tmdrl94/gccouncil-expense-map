@@ -67,8 +67,8 @@ async function main() {
     place: row[idx.place],
     count: Number(row[idx.count]) || 0,
     amount: Number(row[idx.amount]) || 0,
-    users: row[idx.users] || '',
     category: row[idx.category] || '',
+    subtype: row[idx.subtype] || '기타',
     lat: parseFloat(row[idx.lat]),
     lng: parseFloat(row[idx.lng]),
     address: row[idx.address] || '',
@@ -77,7 +77,11 @@ async function main() {
 
   renderStats(items);
   const mapCtl = createMapController(items);
-  renderTable(items, mapCtl);
+  renderTable(items);
+
+  const subtypeSelect = document.getElementById('subtypeSelect');
+  const subtypes = Array.from(new Set(items.map(d => d.subtype))).sort();
+  subtypeSelect.insertAdjacentHTML('beforeend', subtypes.map(s => `<option value="${s}">${s}</option>`).join(''));
 
   let activeCat = 'all';
   document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -91,16 +95,19 @@ async function main() {
 
   const searchBox = document.getElementById('searchBox');
   searchBox.addEventListener('input', applyFilters);
+  subtypeSelect.addEventListener('change', applyFilters);
 
   function applyFilters() {
     const q = searchBox.value.trim().toLowerCase();
+    const subtypeWanted = subtypeSelect.value;
     const filtered = items.filter(d => {
       const catOk = activeCat === 'all' || d.category === activeCat;
+      const subtypeOk = subtypeWanted === 'all' || d.subtype === subtypeWanted;
       const qOk = !q || d.place.toLowerCase().includes(q);
-      return catOk && qOk;
+      return catOk && subtypeOk && qOk;
     });
     mapCtl.setItems(filtered);
-    renderTable(filtered, mapCtl);
+    renderTable(filtered);
     document.getElementById('listCount').textContent = `${filtered.length}곳 표시 중 (전체 ${items.length}곳)`;
   }
   applyFilters();
@@ -108,6 +115,7 @@ async function main() {
 
 function renderStats(items) {
   const stats = document.getElementById('stats');
+  if (!stats) return;
   const totalCount = items.reduce((s, d) => s + d.count, 0);
   const totalAmount = items.reduce((s, d) => s + d.amount, 0);
   const foodCount = items.filter(d => d.category === '음식점').length;
@@ -169,6 +177,7 @@ function initMap(items) {
     return html;
   }
 
+  let openInfoWindow = null;
   const allMarkers = items.filter(d => !isNaN(d.lat) && !isNaN(d.lng)).map(d => {
     const color = d.category === '카페' ? getComputedColor('--series-cafe') : getComputedColor('--series-food');
     const marker = new kakao.maps.Marker({
@@ -176,7 +185,11 @@ function initMap(items) {
       image: new kakao.maps.MarkerImage(svgMarker(color), new kakao.maps.Size(26, 26), { offset: new kakao.maps.Point(13, 13) }),
     });
     const iw = new kakao.maps.InfoWindow({ content: infoContentFor(d), removable: true });
-    kakao.maps.event.addListener(marker, 'click', () => { iw.open(map, marker); });
+    kakao.maps.event.addListener(marker, 'click', () => {
+      if (openInfoWindow) openInfoWindow.close();
+      iw.open(map, marker);
+      openInfoWindow = iw;
+    });
     marker.__item = d;
     return marker;
   });
@@ -206,7 +219,7 @@ function getComputedColor(varName) {
   return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || '#2a78d6';
 }
 
-function renderTable(items, mapCtl) {
+function renderTable(items) {
   const tbody = document.getElementById('tbody');
   tbody.innerHTML = items.map((d, i) => {
     const link = safeHref(d.place_url || kakaoSearchUrl(d.place));
@@ -215,9 +228,9 @@ function renderTable(items, mapCtl) {
       <td class="rank">${i + 1}</td>
       <td>${escapeHtml(d.place)}</td>
       <td><span class="cat-badge ${catClass(d.category)}">${catLabel(d.category)}</span></td>
+      <td>${d.subtype}</td>
       <td class="num">${d.count}</td>
       <td class="num">${d.amount.toLocaleString()}</td>
-      <td class="users-chip">${escapeHtml(d.users)}</td>
       <td><a class="maplink" href="${escapeHtml(link)}" target="_blank" rel="noopener">지도</a></td>
     </tr>`;
   }).join('');

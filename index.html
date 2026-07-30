@@ -10,12 +10,11 @@
 <body>
   <div class="wrap">
     <header>
-      <h1>과천시의회 업무추진비 — 자주 이용한 식당·카페</h1>
+      <h1>과천 시의회 Pick! 맛집 지도</h1>
       <p class="sub">
         분석 기간: <b>2025년 7월 ~ 2026년 6월</b> (최근 1년) &nbsp;|&nbsp;
-        대상: 의장 · 부의장 · 의회사무과장(시책·기관업무추진비) · 예산결산특별위원회위원장 &nbsp;|&nbsp;
         출처: <a href="https://www.gccouncil.go.kr/kr/costBBS.do" target="_blank" rel="noopener">과천시의회 업무추진비 현황 공개 게시판</a>
-        (엑셀 첨부 27개 게시물 · 38개 파일 집계 → <a href="data/places.csv" target="_blank">원자료 CSV</a>)
+        <span class="hidden-note">(엑셀 첨부 27개 게시물 · 38개 파일 집계 → <a href="data/places.csv" target="_blank">원자료 CSV</a>)</span>
       </p>
     </header>
 
@@ -43,7 +42,12 @@
         <h2>전체 목록</h2>
         <span class="n" id="listCount"></span>
       </div>
-      <input class="search" id="searchBox" type="text" placeholder="식당 이름으로 검색 (예: 이대감, 커피)" />
+      <div class="table-controls">
+        <input class="search" id="searchBox" type="text" placeholder="식당 이름으로 검색 (예: 이대감, 커피)" />
+        <select class="subtype-select" id="subtypeSelect">
+          <option value="all">업종 전체</option>
+        </select>
+      </div>
       <div class="table-scroll">
         <table>
           <thead>
@@ -51,9 +55,9 @@
               <th class="rank">#</th>
               <th>식당·카페명</th>
               <th>분류</th>
+              <th>업종</th>
               <th class="num">방문(회)</th>
               <th class="num">총 집행액(원)</th>
-              <th>이용자</th>
               <th>지도</th>
             </tr>
           </thead>
@@ -63,9 +67,7 @@
     </section>
 
     <footer>
-      지도: 카카오맵 (Kakao Maps API) · 좌표는 카카오 키워드 장소검색으로 자동 매칭되어 실제 상호와 다를 수 있습니다.<br/>
-      데이터 집계: 각 엑셀 "사용장소" 열 기준, 한 건에 여러 상호가 함께 적힌 경우 항목별로 분리하고 금액은 균등 배분했습니다.
-      직원 경조사비·위문금·물품구매(SSG·쿠팡 등) 등 식당이 아닌 항목은 제외했습니다.
+      지도: 카카오맵 (Kakao Maps API) · 좌표는 카카오 키워드 장소검색으로 자동 매칭되어 실제 상호와 다를 수 있습니다.
     </footer>
   </div>
 
