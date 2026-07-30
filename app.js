@@ -38,6 +38,20 @@ function kakaoSearchUrl(place) {
   return 'https://map.kakao.com/link/search/' + encodeURIComponent('과천 ' + place);
 }
 
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
+function safeHref(url) {
+  try {
+    const u = new URL(url, location.href);
+    if (u.protocol === 'http:' || u.protocol === 'https:') return u.href;
+  } catch (e) { /* fall through */ }
+  return '#';
+}
+
 function svgMarker(color) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26"><circle cx="13" cy="13" r="9" fill="${color}" stroke="#ffffff" stroke-width="2"/></svg>`;
   return 'data:image/svg+xml;base64,' + btoa(svg);
@@ -143,13 +157,13 @@ function initMap(items) {
   const iwCache = new Map();
   function infoContentFor(d) {
     if (iwCache.has(d.place)) return iwCache.get(d.place);
-    const link = d.place_url || kakaoSearchUrl(d.place);
+    const link = safeHref(d.place_url || kakaoSearchUrl(d.place));
     const html = `<div class="info-window">
-      <b>${d.place}</b>
+      <b>${escapeHtml(d.place)}</b>
       <div class="badge"><span class="cat-badge ${catClass(d.category)}">${catLabel(d.category)}</span></div>
       방문 ${d.count}회 · 총 ${d.amount.toLocaleString()}원<br/>
-      ${d.address ? d.address + '<br/>' : ''}
-      <a href="${link}" target="_blank" rel="noopener">카카오맵에서 보기 →</a>
+      ${d.address ? escapeHtml(d.address) + '<br/>' : ''}
+      <a href="${escapeHtml(link)}" target="_blank" rel="noopener">카카오맵에서 보기 →</a>
     </div>`;
     iwCache.set(d.place, html);
     return html;
@@ -195,16 +209,16 @@ function getComputedColor(varName) {
 function renderTable(items, mapCtl) {
   const tbody = document.getElementById('tbody');
   tbody.innerHTML = items.map((d, i) => {
-    const link = d.place_url || kakaoSearchUrl(d.place);
+    const link = safeHref(d.place_url || kakaoSearchUrl(d.place));
     return `
     <tr>
       <td class="rank">${i + 1}</td>
-      <td>${d.place}</td>
+      <td>${escapeHtml(d.place)}</td>
       <td><span class="cat-badge ${catClass(d.category)}">${catLabel(d.category)}</span></td>
       <td class="num">${d.count}</td>
       <td class="num">${d.amount.toLocaleString()}</td>
-      <td class="users-chip">${d.users}</td>
-      <td><a class="maplink" href="${link}" target="_blank" rel="noopener">지도</a></td>
+      <td class="users-chip">${escapeHtml(d.users)}</td>
+      <td><a class="maplink" href="${escapeHtml(link)}" target="_blank" rel="noopener">지도</a></td>
     </tr>`;
   }).join('');
 }
