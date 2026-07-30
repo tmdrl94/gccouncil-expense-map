@@ -1,0 +1,18 @@
+::ffff:127.0.0.1 - - [30/Jul/2026 14:45:03] "GET /index.html HTTP/1.1" 200 -
+::1 - - [30/Jul/2026 14:45:03] "GET /data/places.csv HTTP/1.1" 200 -
+::1 - - [30/Jul/2026 14:46:28] "GET /index.html HTTP/1.1" 200 -
+::1 - - [30/Jul/2026 14:46:28] "GET /style.css HTTP/1.1" 200 -
+::1 - - [30/Jul/2026 14:46:28] "GET /app.js HTTP/1.1" 200 -
+::1 - - [30/Jul/2026 14:46:29] code 404, message File not found
+::1 - - [30/Jul/2026 14:46:29] "GET /favicon.ico HTTP/1.1" 404 -
+::1 - - [30/Jul/2026 14:47:26] "GET /index.html HTTP/1.1" 304 -
+::1 - - [30/Jul/2026 14:47:26] "GET /app.js HTTP/1.1" 200 -
+::1 - - [30/Jul/2026 14:47:26] "GET /style.css HTTP/1.1" 200 -
+::1 - - [30/Jul/2026 14:47:26] "GET /data/places.csv HTTP/1.1" 200 -
+::1 - - [30/Jul/2026 14:47:39] "GET /style.css HTTP/1.1" 304 -
+::1 - - [30/Jul/2026 14:47:39] "GET /app.js HTTP/1.1" 304 -
+::1 - - [30/Jul/2026 14:58:51] "GET /index.html HTTP/1.1" 304 -
+::1 - - [30/Jul/2026 14:58:51] "GET /style.css HTTP/1.1" 304 -
+::1 - - [30/Jul/2026 14:58:51] "GET /app.js HTTP/1.1" 304 -
+::1 - - [30/Jul/2026 14:58:51] "GET /data/places.csv HTTP/1.1" 304 -
+::1 - - [30/Jul/2026 14:59:03] "GET /index.html HTTP/1.1" 304 -

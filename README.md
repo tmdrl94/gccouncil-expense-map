@@ -21,8 +21,11 @@ git push -u origin main
 ## 2. Vercel에 배포하기
 
 1. [vercel.com](https://vercel.com) → **Add New → Project** → 방금 만든 GitHub 저장소 Import
-2. Framework Preset: **Other** (정적 파일이라 빌드 명령 없이 그대로 배포됩니다)
-3. 배포 완료 후 프로젝트 이름을 `gccouncil-expense-map`으로 설정하면 기본 도메인이
+2. Framework Preset: **Other**. Build Command / Output Directory는 `vercel.json`에 이미 지정되어 있습니다
+   (`node build.js` → `dist/`) — 이 빌드 스크립트가 카카오 키를 주입합니다.
+3. **Project Settings → Environment Variables**에 `KAKAO_JS_KEY` 를 추가하세요 (Production/Preview 둘 다).
+   저장소에는 실제 키 값이 들어있지 않고 `__KAKAO_JS_KEY__` 플레이스홀더만 있습니다 — 빌드 시 이 환경변수로 치환됩니다.
+4. 배포 완료 후 프로젝트 이름을 `gccouncil-expense-map`으로 설정하면 기본 도메인이
    `https://gccouncil-expense-map.vercel.app` 이 됩니다. (이름이 이미 사용 중이면 Vercel이 다른 이름을 제안합니다 — 실제 배정된 도메인을 확인하세요.)
 
 ## 3. 카카오 개발자센터에 도메인 등록 (필수)
@@ -32,9 +35,10 @@ git push -u origin main
 1. [Kakao Developers](https://developers.kakao.com) → 내 애플리케이션 → 해당 앱 선택
 2. **앱 설정 → 플랫폼 → Web 플랫폼 등록**
 3. 사이트 도메인에 `https://gccouncil-expense-map.vercel.app` (실제 배포 도메인) 추가
-4. 로컬에서 미리보려면 `http://localhost:5500` 등 로컬 서버 주소도 함께 등록하세요.
+4. **제품 설정 → 지도(Maps) / 카카오맵** 활성화(ON) 확인 — 도메인 등록과 별개로 이 토글이 꺼져있으면 지도가 안 뜹니다
+5. 로컬에서 미리보려면 `http://localhost:5500` 등 로컬 서버 주소도 함께 등록하세요.
 
-이미 사용 중인 JavaScript 키(`d1048fcfff5bdb47502b6cb3f7a2b4b8`)는 `index.html`, `tools/geocode.html`에 이미 반영되어 있습니다.
+> JavaScript 키는 git에 커밋하지 않습니다. `KAKAO_JS_KEY` 환경변수로만 관리하세요 (참고: 이 키는 도메인 제한으로 보호되는 클라이언트용 공개 키라 배포된 페이지 소스에는 어차피 그대로 노출됩니다 — git 저장소에 남기지 않는 것은 위생 차원의 조치입니다).
 
 ## 4. 좌표 채우기 (지오코딩, 최초 1회)
 
@@ -49,14 +53,11 @@ git push -u origin main
 
 ## 로컬에서 미리보기
 
-빌드 과정이 없는 순수 정적 사이트라 아무 정적 서버로 열면 됩니다.
-
 ```bash
-npx serve .
-# 또는
-python -m http.server 5500
+KAKAO_JS_KEY=발급받은키 node build.js   # dist/ 생성 (실제 키가 주입됨)
+cd dist && python -m http.server 5500
 ```
-(단, 카카오 지도는 등록된 도메인에서만 동작하므로 로컬 확인 시 `http://localhost:5500`을 카카오 개발자센터에 미리 등록해두세요.)
+(카카오 지도는 등록된 도메인에서만 동작하므로 로컬 확인 시 `http://localhost:5500`을 카카오 개발자센터에 미리 등록해두세요.)
 
 ## 데이터 처리 메모
 
