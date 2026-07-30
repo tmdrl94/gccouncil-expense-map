@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>지오코딩 도구 (1회용) — 과천시의회 업무추진비</title>
+<meta name="robots" content="noindex, nofollow" />
+<style>
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 24px; background:#f9f9f7; color:#0b0b0b; }
+  h1 { font-size: 18px; }
+  p.desc { color:#52514e; font-size: 13px; line-height:1.6; }
+  #progress { font-size: 14px; margin: 12px 0; font-variant-numeric: tabular-nums; }
+  button { padding: 8px 14px; font-size: 13px; border-radius: 6px; border: 1px solid #c3c2b7; background:#fff; cursor:pointer; margin-right:8px; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  table { border-collapse: collapse; width:100%; font-size:12px; margin-top:16px; }
+  th, td { border:1px solid #e1e0d9; padding:4px 6px; text-align:left; }
+  th { background:#eee; position: sticky; top:0; }
+  .fail { background:#fde8e8; }
+  textarea { width:100%; height:200px; font-family: monospace; font-size:11px; margin-top:12px; }
+</style>
+</head>
+<body>
+  <h1>지오코딩 도구 (관리자 전용, 1회 실행용)</h1>
+  <p class="desc">
+    이 페이지는 <code>/data/places.csv</code>의 식당·카페 목록을 카카오 키워드 장소검색으로 좌표·카테고리·상세페이지 링크를 채우기 위한 1회성 도구입니다.
+    이 도메인이 카카오 개발자센터의 Web 플랫폼 도메인에 등록되어 있어야 정상 동작합니다.
+    실행 후 아래 "CSV 다운로드" 또는 텍스트박스 내용을 복사하여 <code>data/places.csv</code>를 교체하세요.
+  </p>
+  <button id="startBtn">지오코딩 시작</button>
+  <button id="downloadBtn" disabled>CSV 다운로드</button>
+  <div id="progress"></div>
+  <table id="resultTable">
+    <thead><tr><th>#</th><th>place</th><th>status</th><th>category</th><th>lat</th><th>lng</th><th>address</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <textarea id="output" readonly placeholder="완료 후 이 곳에 최종 CSV 텍스트가 표시됩니다."></textarea>
+
+<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=d1048fcfff5bdb47502b6cb3f7a2b4b8&libraries=services&autoload=false"></script>
+<script>
+const CSV_URL = '../data/places.csv';
+
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i+1] === '"') { field += '"'; i++; }
+        else inQuotes = false;
+      } else field += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else if (c === '\r') { /* skip */ }
+      else field += c;
+    }
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows.filter(r => r.length > 1 || r[0] !== '');
+}
+
+function toCSVField(v) {
+  v = String(v ?? '');
+  if (/[",\n]/.test(v)) return '"' + v.replace(/"/g, '""') + '"';
+  return v;
+}
+
+function classify(kakaoResult) {
+  const code = kakaoResult.category_group_code;
+  if (code === 'CE7') return '카페';
+  if (code === 'FD6') return '음식점';
+  const name = (kakaoResult.category_name || '') + ' ' + (kakaoResult.place_name || '');
+  if (/카페|커피|베이커리|빵|로스터|디저트|COFFEE|CAFE/i.test(name)) return '카페';
+  if (/식당|한식|중식|일식|양식|고기|해물|찜|탕|국밥|분식|뷔페|음식점/i.test(name)) return '음식점';
+  return '기타';
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+let rows = [];
+let header = [];
+
+async function geocodeOne(places, place) {
+  return new Promise((resolve) => {
+    places.keywordSearch('과천 ' + place, (data, status) => {
+      if (status === kakao.maps.services.Status.OK && data.length > 0) {
+        resolve({ ok: true, r: data[0] });
+      } else {
+        // retry without prefix
+        places.keywordSearch(place, (data2, status2) => {
+          if (status2 === kakao.maps.services.Status.OK && data2.length > 0) {
+            resolve({ ok: true, r: data2[0] });
+          } else {
+            resolve({ ok: false });
+          }
+        });
+      }
+    });
+  });
+}
+
+async function run() {
+  document.getElementById('startBtn').disabled = true;
+  const res = await fetch(CSV_URL);
+  const text = await res.text();
+  const parsed = parseCSV(text);
+  header = parsed[0];
+  rows = parsed.slice(1);
+  const idx = Object.fromEntries(header.map((h,i)=>[h,i]));
+
+  const places = new kakao.maps.services.Places();
+  const tbody = document.querySelector('#resultTable tbody');
+  const progress = document.getElementById('progress');
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const placeName = row[idx.place];
+    progress.textContent = `처리 중... ${i+1}/${rows.length} (${placeName})`;
+    const result = await geocodeOne(places, placeName);
+    const tr = document.createElement('tr');
+    if (result.ok) {
+      const r = result.r;
+      const cat = classify(r);
+      row[idx.category] = cat;
+      row[idx.lat] = r.y;
+      row[idx.lng] = r.x;
+      row[idx.address] = r.road_address_name || r.address_name || '';
+      row[idx.place_url] = r.place_url || '';
+      tr.innerHTML = `<td>${i+1}</td><td>${placeName}</td><td>OK</td><td>${cat}</td><td>${r.y}</td><td>${r.x}</td><td>${row[idx.address]}</td>`;
+    } else {
+      row[idx.category] = '미확인';
+      tr.className = 'fail';
+      tr.innerHTML = `<td>${i+1}</td><td>${placeName}</td><td>FAIL</td><td colspan="4">검색 결과 없음</td>`;
+    }
+    tbody.appendChild(tr);
+    await sleep(120);
+  }
+  progress.textContent = `완료: ${rows.length}건 처리`;
+
+  const lines = [header.map(toCSVField).join(',')];
+  for (const row of rows) lines.push(header.map((h,i)=>toCSVField(row[i] ?? '')).join(','));
+  const csvText = lines.join('\n');
+  document.getElementById('output').value = csvText;
+
+  const downloadBtn = document.getElementById('downloadBtn');
+  downloadBtn.disabled = false;
+  downloadBtn.onclick = () => {
+    const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'places_geocoded.csv';
+    a.click();
+  };
+}
+
+document.getElementById('startBtn').addEventListener('click', () => {
+  kakao.maps.load(run);
+});
+</script>
+</body>
+</html>
