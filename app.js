@@ -62,7 +62,7 @@ async function main() {
   })).sort((a, b) => b.count - a.count || b.amount - a.amount);
 
   renderStats(items);
-  const mapCtl = initMap(items);
+  const mapCtl = createMapController(items);
   renderTable(items, mapCtl);
 
   let activeCat = 'all';
@@ -105,6 +105,27 @@ function renderStats(items) {
     [`음식점 ${foodCount} · 카페 ${cafeCount}`, '분류별 개수'],
   ];
   stats.innerHTML = defs.map(([v, l]) => `<div class="stat"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+}
+
+function createMapController(items) {
+  const state = { ready: false, impl: null, pending: null };
+  const ctl = {
+    setItems(list) {
+      if (state.ready) state.impl.setItems(list);
+      else state.pending = list;
+    },
+  };
+  if (typeof kakao === 'undefined' || !kakao.maps) {
+    document.getElementById('map').innerHTML =
+      '<div class="map-fallback">카카오 지도를 불러올 수 없습니다.<br/>이 도메인이 카카오 개발자센터의 Web 플랫폼에 등록되어 있는지 확인해주세요.</div>';
+    return ctl;
+  }
+  kakao.maps.load(() => {
+    state.impl = initMap(items);
+    state.ready = true;
+    if (state.pending) state.impl.setItems(state.pending);
+  });
+  return ctl;
 }
 
 function initMap(items) {
@@ -188,4 +209,4 @@ function renderTable(items, mapCtl) {
   }).join('');
 }
 
-kakao.maps.load(main);
+main();
