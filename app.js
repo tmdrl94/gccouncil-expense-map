@@ -243,7 +243,20 @@ function initMap(items) {
     const entry = byPlace.get(place);
     if (!entry) return;
     map.setLevel(3);
-    map.panTo(entry.marker.getPosition());
+    map.setCenter(entry.marker.getPosition());
+    // The floating panel covers the left side of the screen; re-center so the
+    // marker lands in the middle of the space that's actually visible, not the
+    // geometric center of the full-width map container (which is partly hidden).
+    const overlay = document.getElementById('overlay');
+    if (overlay) {
+      const obstructed = overlay.getBoundingClientRect().right + 20;
+      if (obstructed > 0) {
+        const proj = map.getProjection();
+        const centerPt = proj.containerPointFromCoords(map.getCenter());
+        const shiftedPt = new kakao.maps.Point(centerPt.x - obstructed / 2, centerPt.y);
+        map.setCenter(proj.coordsFromContainerPoint(shiftedPt));
+      }
+    }
     entry.open();
   }
 
