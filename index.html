@@ -8,68 +8,82 @@
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <h1>과천 시의회 Pick! 맛집 지도</h1>
-      <p class="sub">
-        분석 기간: <b>2025년 7월 ~ 2026년 6월</b> (최근 1년) &nbsp;|&nbsp;
-        출처: <a href="https://www.gccouncil.go.kr/kr/costBBS.do" target="_blank" rel="noopener">과천시의회 업무추진비 현황 공개 게시판</a>
-        <span class="hidden-note">(엑셀 첨부 27개 게시물 · 38개 파일 집계 → <a href="data/places.csv" target="_blank">원자료 CSV</a>)</span>
-      </p>
-    </header>
+  <div id="map"></div>
 
-    <section class="stats" id="stats"></section>
+  <div class="overlay" id="overlay">
 
-    <section class="card">
-      <div class="card-head">
-        <h2>지도에서 보기</h2>
+    <section class="panel" id="panel-info">
+      <div class="panel-head">
+        <div>
+          <h1>과천 시의회 Pick! 맛집 지도</h1>
+          <p class="sub">
+            분석 기간: <b>2025년 7월 ~ 2026년 6월</b> (최근 1년) &nbsp;|&nbsp;
+            출처: <a href="https://www.gccouncil.go.kr/kr/costBBS.do" target="_blank" rel="noopener">과천시의회 업무추진비 현황 공개 게시판</a>
+            <span class="hidden-note">(엑셀 첨부 27개 게시물 · 38개 파일 집계 → <a href="data/places.csv" target="_blank">원자료 CSV</a>)</span>
+          </p>
+        </div>
+        <button class="collapse-btn" data-target="panel-info" aria-label="접기/펼치기">▾</button>
+      </div>
+      <div class="panel-body">
+        <div class="legend">
+          <span><i class="dot dot-food"></i> 음식점</span>
+          <span><i class="dot dot-cafe"></i> 카페·베이커리</span>
+          <span class="muted">마커 클릭 시 상세정보 · 지도 확대 시 클러스터 해제</span>
+        </div>
+        <footer>
+          지도: 카카오맵 (Kakao Maps API) · 좌표는 카카오 키워드 장소검색으로 자동 매칭되어 실제 상호와 다를 수 있습니다.
+        </footer>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-filters">
+      <div class="panel-head">
+        <h2>필터</h2>
+        <button class="collapse-btn" data-target="panel-filters" aria-label="접기/펼치기">▾</button>
+      </div>
+      <div class="panel-body">
         <div class="filters" id="filters">
           <button class="filter-btn active" data-cat="all">전체</button>
           <button class="filter-btn" data-cat="음식점">음식점</button>
           <button class="filter-btn" data-cat="카페">카페·베이커리</button>
         </div>
-      </div>
-      <div id="map"></div>
-      <div class="legend">
-        <span><i class="dot dot-food"></i> 음식점</span>
-        <span><i class="dot dot-cafe"></i> 카페·베이커리</span>
-        <span class="muted">마커 클릭 시 상세정보 · 지도 확대 시 클러스터 해제</span>
-      </div>
-    </section>
-
-    <section class="card">
-      <div class="card-head">
-        <h2>전체 목록</h2>
-        <span class="n" id="listCount"></span>
-      </div>
-      <div class="table-controls">
-        <input class="search" id="searchBox" type="text" placeholder="식당 이름으로 검색 (예: 이대감, 커피)" />
-        <select class="subtype-select" id="subtypeSelect">
-          <option value="all">업종 전체</option>
-        </select>
-      </div>
-      <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th class="rank">#</th>
-              <th>식당·카페명</th>
-              <th>분류</th>
-              <th>업종</th>
-              <th class="num">방문(회)</th>
-              <th class="num">총 집행액(원)</th>
-              <th>지도</th>
-            </tr>
-          </thead>
-          <tbody id="tbody"></tbody>
-        </table>
+        <div class="table-controls">
+          <input class="search" id="searchBox" type="text" placeholder="식당 이름으로 검색 (예: 이대감, 커피)" />
+          <select class="subtype-select" id="subtypeSelect">
+            <option value="all">업종 전체</option>
+          </select>
+        </div>
       </div>
     </section>
 
-    <footer>
-      지도: 카카오맵 (Kakao Maps API) · 좌표는 카카오 키워드 장소검색으로 자동 매칭되어 실제 상호와 다를 수 있습니다.
-    </footer>
+    <section class="panel panel-list" id="panel-list">
+      <div class="panel-head">
+        <h2>전체 목록 <span class="n" id="listCount"></span></h2>
+        <button class="collapse-btn" data-target="panel-list" aria-label="접기/펼치기">▾</button>
+      </div>
+      <div class="panel-body">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th class="rank">#</th>
+                <th>식당·카페명</th>
+                <th>분류</th>
+                <th>업종</th>
+                <th class="num">방문(회)</th>
+                <th class="num">총 집행액(원)</th>
+                <th>지도</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
   </div>
+
+  <section class="stats" id="stats"></section>
 
 <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=__KAKAO_JS_KEY__&libraries=services,clusterer&autoload=false"></script>
 <script src="app.js"></script>

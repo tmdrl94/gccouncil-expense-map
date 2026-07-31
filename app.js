@@ -81,12 +81,12 @@ async function main() {
   renderStats(items);
   const mapCtl = createMapController(items);
   renderTable(items);
+  window.addEventListener('resize', () => mapCtl.relayout());
 
   document.getElementById('tbody').addEventListener('click', (e) => {
     const btn = e.target.closest('.place-link');
     if (!btn) return;
     mapCtl.focusPlace(btn.dataset.place);
-    document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
 
   const subtypeSelect = document.getElementById('subtypeSelect');
@@ -148,6 +148,9 @@ function createMapController(items) {
     },
     focusPlace(place) {
       if (state.ready) state.impl.focusPlace(place);
+    },
+    relayout() {
+      if (state.ready) state.impl.relayout();
     },
   };
   if (typeof kakao === 'undefined' || !kakao.maps) {
@@ -244,7 +247,11 @@ function initMap(items) {
     entry.open();
   }
 
-  return { setItems, focusPlace };
+  function relayout() {
+    map.relayout();
+  }
+
+  return { setItems, focusPlace, relayout };
 }
 
 function getComputedColor(varName) {
@@ -272,4 +279,16 @@ function renderTable(items) {
   }).join('');
 }
 
+function setupPanelCollapse() {
+  document.querySelectorAll('.collapse-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const panel = document.getElementById(btn.dataset.target);
+      if (!panel) return;
+      const collapsed = panel.classList.toggle('collapsed');
+      btn.setAttribute('aria-expanded', String(!collapsed));
+    });
+  });
+}
+
 main();
+setupPanelCollapse();
