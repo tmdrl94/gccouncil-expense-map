@@ -7,28 +7,35 @@
 - 데이터: `data/places.csv` (식당별 방문 횟수·집행액·분류·좌표)
 - 지도: 카카오맵 JavaScript SDK
 
-## 1. GitHub에 올리기
+## 1. GitHub / Vercel 현재 상태
 
-이 폴더가 이미 git 저장소로 초기화되어 있습니다 (`git log`로 확인). GitHub에 새 저장소를 만든 뒤 아래처럼 푸시하세요.
+- **GitHub**: [github.com/tmdrl94/gccouncil-expense-map](https://github.com/tmdrl94/gccouncil-expense-map) — 이미 만들어져 있고, 지금까지의 모든 변경사항이 커밋·푸시되어 있습니다.
+- **Vercel**: 프로젝트 `seunggi2/gccouncil-expense-map`, 실서비스 도메인 `https://gccouncil-expense-map.vercel.app` 로 이미 배포되어 있습니다.
+- **단, 이 둘은 서로 연결되어 있지 않습니다.** Vercel 프로젝트가 GitHub 저장소를 Import해서 만들어진 게 아니라
+  `vercel` CLI로 로컬에서 직접 만든 프로젝트라서, **GitHub에 push한다고 자동으로 Vercel에 재배포되지 않습니다.**
+  (연동을 시도했을 때 "GitHub 계정에 Login Connection을 먼저 추가해야 한다"는 오류가 나서 CLI 직접 배포 방식으로 진행했습니다.)
+  그래서 지금까지의 배포는 매번 ①`git push`(GitHub, 이력 보존용) → ②`vercel --prod`(로컬 `dist/`를 직접 업로드해 실배포) 두 단계를 함께 수행하는 방식이었습니다.
+
+### 코드를 수정한 뒤 배포하는 법 (현재 방식)
 
 ```bash
-cd gccouncil-expense-map
-git remote add origin https://github.com/<your-id>/gccouncil-expense-map.git
-git branch -M main
-git push -u origin main
+# 1) 수정 후 GitHub에 기록
+git add -A
+git commit -m "설명"
+git push
+
+# 2) Vercel에 실제로 반영 (이 명령을 실행해야만 사이트에 반영됩니다)
+export NODE_OPTIONS="--use-system-ca"   # 사내망 SSL 검사 프록시 우회용
+vercel --prod --yes
 ```
 
-## 2. Vercel에 배포하기
+### 앞으로 GitHub push만으로 자동 배포되게 하려면
 
-1. [vercel.com](https://vercel.com) → **Add New → Project** → 방금 만든 GitHub 저장소 Import
-2. Framework Preset: **Other**. Build Command / Output Directory는 `vercel.json`에 이미 지정되어 있습니다
-   (`node build.js` → `dist/`) — 이 빌드 스크립트가 카카오 키를 주입합니다.
-3. **Project Settings → Environment Variables**에 `KAKAO_JS_KEY` 를 추가하세요 (Production/Preview 둘 다).
-   저장소에는 실제 키 값이 들어있지 않고 `__KAKAO_JS_KEY__` 플레이스홀더만 있습니다 — 빌드 시 이 환경변수로 치환됩니다.
-4. 배포 완료 후 프로젝트 이름을 `gccouncil-expense-map`으로 설정하면 기본 도메인이
-   `https://gccouncil-expense-map.vercel.app` 이 됩니다. (이름이 이미 사용 중이면 Vercel이 다른 이름을 제안합니다 — 실제 배정된 도메인을 확인하세요.)
+Vercel 대시보드 → 프로젝트 → **Settings → Git** 에서 GitHub 저장소를 연결하면 됩니다.
+(먼저 Vercel 계정 설정에서 GitHub Login Connection을 추가해야 Import가 가능했던 문제였으니, 그 부분만 해결하면 연결 자체는 어렵지 않습니다.)
+연결하고 나면 `git push`만으로 Vercel이 알아서 빌드·배포하게 되고, 위 2단계 중 `vercel --prod`는 더 이상 필요 없어집니다.
 
-## 3. 카카오 개발자센터에 도메인 등록 (필수)
+## 2. 카카오 개발자센터에 도메인 등록 (필수)
 
 지도가 뜨려면 **배포된 실제 도메인**을 카카오 앱에 등록해야 합니다.
 
@@ -40,7 +47,7 @@ git push -u origin main
 
 > JavaScript 키는 git에 커밋하지 않습니다. `KAKAO_JS_KEY` 환경변수로만 관리하세요 (참고: 이 키는 도메인 제한으로 보호되는 클라이언트용 공개 키라 배포된 페이지 소스에는 어차피 그대로 노출됩니다 — git 저장소에 남기지 않는 것은 위생 차원의 조치입니다).
 
-## 4. 좌표 채우기 (지오코딩)
+## 3. 좌표 채우기 (지오코딩)
 
 `data/places.csv`에는 식당별 위도/경도/분류가 이미 채워져 있습니다 (최초 1회, 카카오 키워드 장소검색으로 생성).
 좌표를 못 찾은 몇몇 항목은 `lat`/`lng`/`address`/`place_url` 칸이 비어 있는데, 이 칸을 채우면 지도에 마커로 표시됩니다
@@ -61,4 +68,4 @@ cd dist && python -m http.server 5500
 
 - 각 엑셀의 "사용장소" 열을 원문 그대로 사용하되, 한 셀에 여러 상호가 쉼표로 함께 적힌 경우 상호별로 분리하고 금액은 균등 배분했습니다.
 - 직원 경조사비·군장병 위문금·물품구매(SSG·쿠팡 등 식당이 아닌 항목)는 집계에서 제외했습니다.
-- 표기 차이(예: "더 호" / "더호", "청계산도토리" / "청계산 도토리")는 별도 정규화하지 않아 별개 항목으로 남아있을 수 있습니다.
+- 같은 업체가 다른 표기(예: "더 호" / "더호", "맛찬들" / "맛찬들왕소금구이")로 따로 집계된 경우, 카카오맵 `place_url`(장소 고유 ID)이 같으면 하나로 합쳤습니다 — URL의 `http`/`https` 차이는 무시하고 숫자 ID만 비교합니다.
